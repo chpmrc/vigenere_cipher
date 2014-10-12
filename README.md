@@ -22,4 +22,11 @@ Either the pair (key, plaintext) or (key, ciphertext) has to exist. If no plaint
 
 ### Breaking the cipher
 
-TODO
+An English dictionary with a big number of words (~200000) is required. The dictionary must be a text file with a word per line, not necessarily sorted. One is freely downloadable here: [http://www.math.sjsu.edu/~foster/dictionary.txt](http://www.math.sjsu.edu/~foster/dictionary.txt).
+
+From a terminal:
+
+`java Vigenere -break path_to_ciphertext path_to_dictionary path_to_plaintext`
+
+The key will be written both on the standard output and a file named `key`_path_to_plaintext (notice the prefix).
+__Note__: breaking a Vigenere cipher through statistical analysis requires a ciphertext with a large number of characters. If the ciphertext is too short you might recover the key only partially (or not at all).
