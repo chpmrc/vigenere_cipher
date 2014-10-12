@@ -11,7 +11,7 @@ public class Vigenere {
     }
 
     private static void printUsageVb() {
-        System.out.println("Usage: Vigenere -break ciphertext_file dictionary_file");
+        System.out.println("Usage: Vigenere -break ciphertext_file dictionary_file plaintext_file");
     }
 
     public static void main(String[] args) throws IOException {
@@ -28,11 +28,11 @@ public class Vigenere {
         } else if (args[0].equals("-break")) {
             VigenereBreaker vb;
 
-            if (args.length != 3) {
+            if (args.length != 4) {
                 printUsageVb();
                 return;
             }
-            vb = new VigenereBreaker(args[1], args[2]);
+            vb = new VigenereBreaker(args[1], args[2], args[3]);
 
 
         } else {

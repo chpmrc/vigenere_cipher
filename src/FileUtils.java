@@ -11,9 +11,10 @@ import java.nio.file.Path;
  * A bunch of static methods to be used as utilities
  */
 public class FileUtils {
+
     public static String readFileContent(String path, boolean trim) {
         Path pathObj;
-        String root = "."; // assume relative path
+        String root = "./"; // assume relative path
         String result;
         if (path.startsWith("/")) {
             root = "/";
@@ -26,6 +27,20 @@ public class FileUtils {
             ioe.printStackTrace();
         }
         return null;
+    }
+
+    public static void writeFileContent(String path, String content) {
+        Path pathObj;
+        String root = "./";
+        if (path.startsWith("/")) {
+            root = "/";
+        }
+        pathObj = FileSystems.getDefault().getPath(root, path);
+        try {
+            Files.write(pathObj, content.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static String readFileContent(String path) {

@@ -1,3 +1,4 @@
+import java.io.File;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -9,7 +10,7 @@ public class VigenereBreaker {
     VigenereCipher vc;
 
     int keyLength = 0;
-    String key;
+    String key, plaintextFileName, keyFileName;
 
     String ciphertext, dictionaryDump, alphabetStr = "a b c d e f g h i j k l m n o p q r s t u v w x y z";
     String[] alphabetArr;
@@ -27,7 +28,7 @@ public class VigenereBreaker {
      * @param ciphertextFilename
      * @param dictionaryFilename
      */
-    public VigenereBreaker(String ciphertextFilename, String dictionaryFilename) {
+    public VigenereBreaker(String ciphertextFilename, String dictionaryFilename, String plaintextFileName) {
         int i;
         alphabetArr = alphabetStr.split(" ");
         a2i = new HashMap<String, Integer>();
@@ -39,6 +40,7 @@ public class VigenereBreaker {
         dictionary = new ArrayList<String>();
         charactersByFrequency = new ArrayList<String>();
         alphabetFrequency = new double[26];
+        keyFileName = "key_" + plaintextFileName;
 
         // Separate words into a list
         for (String word : dictionaryDump.split("\n")) {
@@ -60,7 +62,12 @@ public class VigenereBreaker {
         }
 
         keyLength = findKeyLength(ciphertext);
+        System.out.println("Probable length of the key: " + keyLength);
         key = findKey(ciphertext, keyLength);
+        System.out.println("Probable key: " + key);
+        FileUtils.writeFileContent(keyFileName, key);
+        vc = new VigenereCipher(plaintextFileName, ciphertextFilename, keyFileName);
+        vc.execute();
     }
 
     /**
@@ -228,7 +235,6 @@ public class VigenereBreaker {
             curShift = findShiftWithMaxDotProduct(curCiphertextFrequency, curAlphabetFrequency);
             key.append(i2a.get(curShift));
         }
-        System.out.println(key.toString());
         return key.toString();
     }
 
