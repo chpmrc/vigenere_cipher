@@ -8,13 +8,17 @@ public class VigenereBreaker {
 
     VigenereCipher vc;
 
-    String ciphertext, dictionaryDump, alphabet = "a b c d e f g h i j k l m n o p q r s t u v w x y z";
-
     int keyLength = 0;
+    String key;
 
+    String ciphertext, dictionaryDump, alphabetStr = "a b c d e f g h i j k l m n o p q r s t u v w x y z";
+    String[] alphabetArr;
+    Map<String, Integer> a2i;
+    Map<Integer, String> i2a;
     Map<String, Double> letterFrequency;
     List<String> dictionary;
     List<String> charactersByFrequency;
+    double[] alphabetFrequency;
 
     /**
      * Constructor.
@@ -24,22 +28,39 @@ public class VigenereBreaker {
      * @param dictionaryFilename
      */
     public VigenereBreaker(String ciphertextFilename, String dictionaryFilename) {
+        int i;
+        alphabetArr = alphabetStr.split(" ");
+        a2i = new HashMap<String, Integer>();
+        i2a = new HashMap<Integer, String>();
         // vc = new VigenereCipher(plaintextFilename, ciphertextFilename, keyFilename);
         ciphertext = FileUtils.readFileContent(ciphertextFilename, true);
         dictionaryDump = FileUtils.readFileContent(dictionaryFilename);
-
         letterFrequency = new HashMap<String, Double>();
         dictionary = new ArrayList<String>();
         charactersByFrequency = new ArrayList<String>();
+        alphabetFrequency = new double[26];
 
         // Separate words into a list
         for (String word : dictionaryDump.split("\n")) {
             dictionary.add(word);
         }
         populateLetterFrequency(dictionary);
+
+        // Map alphabet characters to indices and viceversa
+        i = 0;
+        for (String letter : alphabetStr.split(" ")) {
+            a2i.put(letter, i);
+            i2a.put(i, letter);
+            i++;
+        }
+
+        // Populate array of frequency to be used to find the key
+        for (String l : alphabetArr) {
+            alphabetFrequency[a2i.get(l)] = letterFrequency.get(l);
+        }
+
         keyLength = findKeyLength(ciphertext);
-        System.out.println(keyLength);
-        findKey(ciphertext, keyLength);
+        key = findKey(ciphertext, keyLength);
     }
 
     /**
@@ -59,7 +80,7 @@ public class VigenereBreaker {
         }
 
         // Generate alphabet
-        for (String c : alphabet.split(" ")) {
+        for (String c : alphabetStr.split(" ")) {
             letterFrequency.put(c, 0.0);
         }
 
@@ -113,7 +134,7 @@ public class VigenereBreaker {
             // Why? I dunno, just intuition. Maybe I'm wrong, maybe not!
             // But if the key is 6 (e.g. turing) sometimes maxShift becomes 6, 9 and 24 and 6 is the right length.
             if (curMatch > maxMatch) { // && tempCurShift.gcd(tempMaxShift).compareTo(oneBig) == 0) {
-                System.out.println("Found " + curMatch + " with shift " + curShift);
+                // System.out.println("Found " + curMatch + " with shift " + curShift);
                 maxMatch = curMatch;
                 maxShift = curShift;
             }
@@ -125,43 +146,90 @@ public class VigenereBreaker {
     }
 
     /**
+     * Populate the given array of frequencies by "hopping" on the ciphertext
+     * jumping each time "keyLength" characters starting by the given initial position.
+     * It is the W array in the "Second method" on the book.
+     * @param ciphertext
+     * @param frequencies
+     * @param initPos
+     */
+    void populateOffsetFrequency(String ciphertext, double[] frequencies, int initPos, int keyLength) {
+        int curPos = initPos, alphaIndex, totalChars = 0;
+        String curChar;
+
+        while (curPos < ciphertext.length()) {
+            curChar = ciphertext.substring(curPos, curPos + 1);
+            alphaIndex = a2i.get(curChar);
+            frequencies[alphaIndex]++;
+            // System.out.printf("Char %s has been found %f times (now at position %d)\n", curChar, frequencies[alphaIndex], curPos);
+            totalChars++;
+            curPos += keyLength;
+        }
+
+        for (int i = 0; i < frequencies.length; i++) {
+            frequencies[i] /= totalChars;
+        }
+    }
+
+    /**
+     * No comment. This function will probably be integrated as inline code.
+     * @param arr
+     */
+    void shiftDoubleArrayRight(double[] arr) {
+        double temp = arr[arr.length - 1];
+        for (int i = arr.length - 1; i > 0; i--) {
+            arr[i] = arr[i - 1];
+        }
+        arr[0] = temp;
+    }
+
+    /**
+     * Find the shift for a2 that yields the greatest dot product value
+     * between a1 and a2.
+     * @param a1
+     * @param a2
+     * @return
+     */
+    int findShiftWithMaxDotProduct(double[] a1, double[] a2) {
+        double curDp = 0, maxDp = 0;
+        int maxShift = 0, curShift = 0;
+        double temp;
+
+        for (int shift = 0; shift < a2.length; shift++) {
+            curShift = shift;
+            for (int i = 0; i < a1.length; i++) {
+                curDp += (a1[i] * a2[i]);
+            }
+            if (curDp > maxDp) {
+                maxShift = curShift;
+                maxDp = curDp;
+            }
+            curDp = 0;
+            shiftDoubleArrayRight(a2);
+        }
+        return maxShift;
+    }
+
+    /**
      * Find the key given the ciphertext and the length of the key.
      * @param ciphertext
      * @param keyLength
      * @return
      */
     String findKey(String ciphertext, int keyLength) {
-        List<Double> W = new ArrayList<Double>(); // Frequency of each letter of the alphabet in the ciphertext
-        List<Double> A = new ArrayList<Double>(); // Frequency of each letter of the alphabet in English (shifted)
-        String[] realAlphabet = alphabet.split(" ");
+        // We need a copy, we are going to shift it
+        double[] curAlphabetFrequency = Arrays.copyOf(alphabetFrequency, alphabetFrequency.length);
+        double[] curCiphertextFrequency = new double[26];
+        int curShift;
         StringBuilder key = new StringBuilder();
-        int pos, occs;
-
-
-        // Map alphabet index (0 = A, 1 = B etc.) to frequency
-        for (String c : realAlphabet) {
-            A.add(letterFrequency.get(c));
-        }
-
-        // Find frequency for each i-th letter, according to the key length
+        // At the end of this loop we should get the key
         for (int i = 0; i < keyLength; i++) {
-            pos = i;
-            while (pos < ciphertext.length()) {
-                occs = countOccurrencies(ciphertext, ciphertext.substring(pos, pos + 1));
-                pos += keyLength;
-            }
+            populateOffsetFrequency(ciphertext, curCiphertextFrequency, i, keyLength);
+            curShift = findShiftWithMaxDotProduct(curCiphertextFrequency, curAlphabetFrequency);
+            key.append(i2a.get(curShift));
         }
-
-        return null;
-    }
-
-    double dotProduct(List<Integer> W, List<Integer> A) {
-        // Assume W.length() == A.length()
-        double result = 0;
-        for (int i = 0; i < W.size(); i++) {
-            result += W.get(i) * A.get(i);
-        }
-        return result;
+        System.out.println(key.toString());
+        return key.toString();
     }
 
     /**
