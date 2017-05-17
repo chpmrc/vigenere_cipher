@@ -1,6 +1,6 @@
 # Vigenere Cipher
 
-This is an implementation of Vigenere cipher in Java. The user is allowed to either encrypt/decrypt some text file or break (TODO) a given ciphertext without knowing the key nor the key length.
+This is an implementation of Vigenere cipher in Java. The user is allowed to either encrypt/decrypt some text file or break a given ciphertext without knowing the key nor the key length.
 
 ## Building
 
